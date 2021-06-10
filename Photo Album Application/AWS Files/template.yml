@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Photo Album LF2
+Resources:
+  photoalbumLF2:
+    Type: 'AWS::Serverless::Function'
+    DeletionPolicy : Retain
+    Properties:
+      Handler: lambda_function.lambda_handler
+      FunctionName: photo-album-LF2
+      Runtime: python3.7
+      CodeUri: Lambda/LF2/function.zip
+      Description: ''
+      MemorySize: 128
+      Timeout: 10
+      Role: >-
+        arn:aws:iam::762867899973:role/service-role/photo-album-LF2-role-n4pzyips
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-7324e259
+        SubnetIds:
+          - subnet-2e806371
+          - subnet-fed96fb3
+  photoalbumLF1:
+    Type: 'AWS::Serverless::Function'
+    DeletionPolicy : Retain
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.7
+      CodeUri: Lambda/LF1/function.zip
+      Description: Triggers on new S3 photo-album uploads and runs rekognition on them
+      MemorySize: 128
+      FunctionName: photo-album-LF1
+      Timeout: 3
+      Role: >-
+        arn:aws:iam::762867899973:role/service-role/photo-album-LF1-role-isr4o4xv
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-7324e259
+        SubnetIds:
+          - subnet-2e806371
+          - subnet-fed96fb3

@@ -1,0 +1,166 @@
+
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Metadata:
+  AWS::CloudFormation::Designer:
+    1e1c2972-4a46-4554-ba9b-2b9321c7d7c8:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 270
+        y: 90
+      z: 1
+      embeds: []
+    b0e1f3dc-1eea-4767-8e2a-5714f253d5c5:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 150
+        y: 90
+      z: 1
+      embeds: []
+      dependson:
+      - 1e1c2972-4a46-4554-ba9b-2b9321c7d7c8
+    a9ee308d-d6ac-41b9-b3e0-c6bcb58da64e:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 270
+        y: 210
+      z: 1
+      embeds: []
+      dependson:
+      - 1e1c2972-4a46-4554-ba9b-2b9321c7d7c8
+Resources:
+  hw4EmailsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref emailBucketName
+    Metadata:
+      AWS::CloudFormation::Designer:
+        id: 1e1c2972-4a46-4554-ba9b-2b9321c7d7c8
+  hw4EmailsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref hw4EmailsBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Sid: AllowSESPuts
+          Effect: Allow
+          Principal:
+            Service: ses.amazonaws.com
+          Action: s3:PutObject
+          Resource: !Ref bucketPolicyResource
+    Metadata:
+      AWS::CloudFormation::Designer:
+        id: b0e1f3dc-1eea-4767-8e2a-5714f253d5c5
+    DependsOn:
+    - hw4EmailsBucket
+  hw4EmailSESRule1:
+    Type: 'AWS::SES::ReceiptRule'
+    Properties:
+      RuleSetName: default-rule-set
+      Rule:
+        Name: !Ref sesRuleName
+        Enabled: true
+        ScanEnabled: true
+        Recipients:
+          - !Ref sesDomainEmail
+        Actions:
+          - S3Action:
+              BucketName: !Ref emailBucketName
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: a9ee308d-d6ac-41b9-b3e0-c6bcb58da64e
+    DependsOn:
+      - hw4EmailsBucket
+  spamTest1:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.7
+      CodeUri: s3://hw4emailbucket/spamTest.zip
+      Description: ''
+      MemorySize: 128
+      Timeout: 10
+      Role:
+        Fn::GetAtt:
+        - LF1Role
+        - Arn
+      Events:
+        BucketEvent1:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: hw4EmailsBucket
+            Events:
+              - 's3:ObjectCreated:Put'
+      Environment:
+        Variables:
+          PredictionEndpoint:
+            Ref: PredictionEndpoint
+  LF1Policy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: LF1Policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - ses:*
+          - S3:*
+          - es:ESHttpPut
+          - ec2:*
+          - sagemaker:InvokeEndpoint
+          Resource: '*'
+      Roles:
+      - Ref: LF1Role
+    Metadata:
+      AWS::CloudFormation::Designer:
+        id: 3c05c532-21ac-4b28-8b54-e768d4d56358
+  LF1Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      AWS::CloudFormation::Designer:
+        id: 6483f3d3-2cfb-4468-a451-5f1c4ece06d4
+  AllowS3ToCallLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref spamTest1
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt hw4EmailsBucket.Arn
+Parameters:
+  emailBucketName:
+    Type: String
+    Default: testbucket1.hw4
+  sesDomainEmail:
+    Type: String
+    Default: hw4-emails@mail.mynox.tech
+  bucketPolicyResource:
+    Type: String
+    Default: arn:aws:s3:::testbucket1.hw4/*
+  sesRuleName:
+    Type: String
+    Default: hw4-email-s3-copy
+  PredictionEndpoint:
+    Type: String
+    Default: testendpoint

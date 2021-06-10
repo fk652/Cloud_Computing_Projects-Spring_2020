@@ -1,0 +1,73 @@
+<!doctype html>
+<html  lang="">
+<head>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+
+
+            $("#submit").click(function(e) {
+                e.preventDefault();
+
+                var name = $("#name").val(),
+                    phone_number = $("#phone_number").val();
+
+                    const queryString = window.location.search;
+
+                    const urlParams = new URLSearchParams(queryString);
+
+                    const face_id = urlParams.get('id')
+                    console.log(face_id);
+                $.ajax({
+                    type: "POST",
+                    crossDomain: true,
+                    url: ' https://7erjjbrtoc.execute-api.us-east-1.amazonaws.com/stage1/resource1',
+                    contentType: 'application/json',
+
+                    data: JSON.stringify({
+                        'name': name,
+                        'phone_number': phone_number,
+                        'id':face_id
+                    }),
+                    success: function(res){
+                        $('#form-response').text('Email was sent.');
+                    },
+                    error: function(){
+                        $('#form-response').text('Error.');
+                    }
+                });
+
+            })
+
+        });
+    </script>
+  <meta charset="utf-8">
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <script src="js/vendor/modernizr.js"></script>
+</head>
+<body >
+  <div class="container">
+    <h2>Add Visitor</h2>
+    <form >
+      <div class="form-group">
+        <label for="name">Name:</label>
+        <input type="text" class="form-control" id="name" placeholder="Enter name" name="name">
+      </div>
+      <div class="form-group">
+        <label for="phone_number">Phone Number</label>
+        <input type="text" class="form-control" id="phone_number" placeholder="Enter Phone Number" name="email">
+      </div>
+      <button type="submit" id="submit" class="btn btn-default">Submit</button>
+    </form>
+
+</div>
+
+<div id="form-response"></div>
+
+
+</body>
+</html>

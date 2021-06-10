@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Photo Album</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css">
+    <link rel="stylesheet" href="https://cdn.shoelace.style/1.0.0-beta24/shoelace.css">
+    <link rel="stylesheet" href="css/styles.css">
+
+</head>
+
+<body>
+
+
+    <div class="container">
+        <h1>
+            Photo Album
+        </h1>
+
+        <div id="error" class="isa_error">
+            <i class="fa fa-times-circle"></i>
+            <span></span>
+        </div>
+        <div id="info" class="isa_info">
+            <i class="fa fa-info-circle"></i>
+            <span></span>
+        </div>
+        <div id="success" class="isa_success">
+            <i class="fa fa-check"></i>
+            <span></span>
+        </div>
+        <input type="text" id="transcript" placeholder="Press Start and speak into your mic" autocomplete="off" autofocus></input>
+        <div class="row">
+            <div class="col">
+                <button id="start-button" class="button-xl" title="Start Transcription">
+                    <i class="fa fa-microphone"></i> Start
+                </button>
+                <button id="stop-button" class="button-xl" title="Stop Transcription" disabled="true">
+                    <i class="fa fa-stop-circle"></i> Stop
+                </button>
+                <button id="search-button" class="button-xl" title="Search" onclick="searchPhotos()">
+                    <i class="fa fa-search"></i> Search
+                </button>
+                <button id="reset-button" class="button-xl button-secondary" title="Clear">
+                    Clear
+                </button>
+            </div>
+        </div>
+        <div class="upload-box">
+            <button id="upload-button" onclick="uploadPhoto()">Upload</button>
+            <input type="file" id="file-input">
+        </div>
+        <div id="viewer" />
+    </div>
+
+    <script type="text/javascript" src="lib/axios/dist/axios.standalone.js"></script>
+    <script type="text/javascript" src="lib/CryptoJS/rollups/hmac-sha256.js"></script>
+    <script type="text/javascript" src="lib/CryptoJS/rollups/sha256.js"></script>
+    <script type="text/javascript" src="lib/CryptoJS/components/hmac.js"></script>
+    <script type="text/javascript" src="lib/CryptoJS/components/enc-base64.js"></script>
+    <script type="text/javascript" src="lib/url-template/url-template.js"></script>
+    <script type="text/javascript" src="lib/apiGatewayCore/sigV4Client.js"></script>
+    <script type="text/javascript" src="lib/apiGatewayCore/apiGatewayClient.js"></script>
+    <script type="text/javascript" src="lib/apiGatewayCore/simpleHttpClient.js"></script>
+    <script type="text/javascript" src="lib/apiGatewayCore/utils.js"></script>
+    <script type="text/javascript" src="js/apigClient.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="js/main.js"></script>
+    <script type="text/javascript" src="js/voice.js"></script>
+</body>
+
+</html>

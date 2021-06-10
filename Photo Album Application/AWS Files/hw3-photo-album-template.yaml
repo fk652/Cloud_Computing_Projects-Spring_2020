@@ -1,0 +1,705 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+Resources:
+  photoalbumLF1:
+    Type: 'AWS::Serverless::Function'
+    DeletionPolicy: Retain
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.7
+      CodeUri: 's3://lambda-deployment-photo/b0386444749c1c169e4971cbd5ef04f5'
+      Description: Triggers on new S3 photo-album uploads and runs rekognition on them
+      MemorySize: 128
+      Timeout: 3
+      Role: !GetAtt LF1Role.Arn
+      Events:
+        BucketEvent1:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: Bucket1
+            Events:
+              - 's3:ObjectCreated:*'
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-7324e259
+        SubnetIds:
+          - subnet-2e806371
+          - subnet-fed96fb3
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 0a4234df-7464-431e-b5cc-9f5ab36bb537
+  Bucket1:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 04b652e8-345e-42c8-b504-6189db7c518f
+    DependsOn:
+      - APIGateway
+  photoalbumLF2:
+    Type: 'AWS::Serverless::Function'
+    DeletionPolicy: Retain
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.7
+      CodeUri: 's3://lambda-deployment-photo/f2e16c271247326330a5563e8b144929'
+      Description: ''
+      MemorySize: 128
+      Timeout: 10
+      Role: !GetAtt LF2Role.Arn
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /search
+            Method: GET
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-7324e259
+        SubnetIds:
+          - subnet-2e806371
+          - subnet-fed96fb3
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 3ab689ec-58d8-4620-aa66-c7163fb5db4a
+    DependsOn:
+      - APIGateway
+  photos:
+    Type: 'AWS::Elasticsearch::Domain'
+    DeletionPolicy: Retain
+    Properties:
+      AccessPolicies:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: '*'
+            Action: 'es:*'
+            Resource: 'arn:aws:es:us-east-1:762867899973:domain/photos/*'
+      DomainName: photos
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 10
+        VolumeType: gp2
+      ElasticsearchVersion: '7.4'
+      VPCOptions:
+        SecurityGroupIds:
+          - sg-7324e259
+        SubnetIds:
+          - subnet-2e806371
+          - subnet-fed96fb3
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: cf37f3e9-b817-4789-b5a3-f80e97f9b3b2
+    DependsOn:
+      - photoalbumLF1
+      - photoalbumLF2
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+    DeletionPolicy: Retain
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: c3c12b25-a023-445c-8e48-cae1104cd559
+  BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: 'arn:aws:s3:::cs9223g-hw3-web/*'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 19e24fcc-775f-4576-803b-18b09881c681
+  APIGateway:
+    Type: 'AWS::Serverless::Api'
+    Properties:
+      BinaryMediaTypes:
+        - image/png
+        - image/jpg
+        - image/jpeg
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          title: AI Photo Search
+          description: >-
+            AI Photo Search application, built during the Cloud and Big Data
+            course at Columbia University.
+          version: 1.0.0
+        schemes:
+          - https
+        basePath: /v1
+        produces:
+          - application/json
+        paths:
+          /search:
+            get:
+              summary: photo search method
+              description: >
+                This API takes in a search query as a query parameter and
+                returns zero or more photos that match the search query.
+              operationId: searchPhotos
+              parameters:
+                - in: query
+                  name: q
+                  schema:
+                    type: string
+                  description: the string to be searched
+              produces:
+                - application/json
+              responses:
+                '200':
+                  description: search results
+                  schema:
+                    $ref: '#/definitions/SearchResponse'
+                '403':
+                  description: Unauthorized
+                  schema:
+                    $ref: '#/definitions/Error'
+                '500':
+                  description: Unexpected error
+                  schema:
+                    $ref: '#/definitions/Error'
+          /upload:
+            put:
+              summary: photo upload method
+              description: >
+                This API takes in the multi-part body sent to it (ex. a photo)
+                and uploads it to an S3 bucket.
+              operationId: uploadPhoto
+              consumes:
+                - image/png
+                - image/jpg
+                - image/jpeg
+              produces:
+                - application/json
+              responses:
+                '200':
+                  description: S3 PUT operation response
+                  schema:
+                    type: object
+                '403':
+                  description: Unauthorized
+                  schema:
+                    $ref: '#/definitions/Error'
+                '500':
+                  description: Unexpected error
+                  schema:
+                    $ref: '#/definitions/Error'
+        definitions:
+          SearchResponse:
+            type: object
+            properties:
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/Photo'
+          Photo:
+            type: object
+            properties:
+              url:
+                type: string
+              labels:
+                type: array
+                items:
+                  type: string
+          Error:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+              message:
+                type: string
+      Models:
+        Error:
+          type: object
+          properties:
+            code:
+              type: integer
+              format: int32
+            message:
+              type: string
+        MODEL365d92:
+          type: object
+          properties: {}
+        Photo:
+          type: object
+          properties:
+            url:
+              type: string
+            labels:
+              type: array
+              items:
+                type: string
+        SearchResponse:
+          type: object
+          properties:
+            results:
+              type: array
+              items:
+                $ref: >-
+                  https://apigateway.amazonaws.com/restapis/4tedgpy7vh/models/Photo
+      Name: AI Photo Search
+      OpenApiVersion: '2.0'
+      StageName: prod
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: b141a13c-e68d-4991-b8c8-cb4dee5a5bca
+    DependsOn:
+      - S3Bucket
+  PipelineLambda:
+    Type: 'AWS::Serverless::Function'
+    DeletionPolicy: Retain
+    Properties:
+      Handler: lambda_function.lambda_handler
+      FunctionName: pipeline-lambda
+      Runtime: python3.8
+      CodeUri: 's3://lambda-deployment-photo/c014056dea967112853a23106fa512d9'
+      Role: >-
+        arn:aws:iam::762867899973:role/service-role/photo-album-LF1-role-isr4o4xv
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 7d5f8ff7-ad6f-4015-9eec-fc699124329e
+  PipelineLambda2:
+    Type: 'AWS::Serverless::Function'
+    DeletionPolicy: Retain
+    Properties:
+      Handler: lambda_function.lambda_handler
+      FunctionName: pipeline-lambda2
+      Runtime: python3.8
+      CodeUri: 's3://lambda-deployment-photo/b0386444749c1c169e4971cbd5ef04f5'
+      Role: >-
+        arn:aws:iam::762867899973:role/service-role/photo-album-LF2-role-n4pzyips
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: e0adc66a-d659-4bf3-986d-14bb68e91cb1
+  FrontEndPipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties: null
+    RoleArn: >-
+      arn:aws:iam::762867899973:role/service-role/AWSCodePipelineServiceRole-us-east-1-PhotoAlbumFrontEndPipeline
+    Stages:
+      - Name: Source
+        Actions:
+          - InputArtifacts: []
+            Name: Source
+            ActionTypeId:
+              Version: '1'
+              Owner: ThirdParty
+              Category: Source
+              Provider: GitHub
+            OutputArtifacts:
+              - Name: SourceArtifact
+            RunOrder: 1
+            Configuration:
+              Owner: AnthonyWongChiYeung
+              Repo: cs9223g-hw3-frontend
+              PollForSourceChanges: 'false'
+              Branch: master
+              OAuthToken: 67a7d13af9ec658b6cb679289138654387940c50
+            Region: us-east-1
+            Namespace: SourceVariables
+      - Name: Deploy
+        Actions:
+          - Name: Deploy
+            InputArtifacts:
+              - Name: SourceArtifact
+            Namespace: DeployVariables
+            ActionTypeId:
+              Category: Deploy
+              Owner: AWS
+              Version: 1
+              Provider: S3
+            Configuration:
+              BucketName: cs9223g-hw3-web
+              Extract: 'true'
+            RunOrder: 1
+            Region: us-east-1
+    ArtifactStore:
+      Type: S3
+      Location: codepipeline-us-east-1-215092533109
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: a97dc06f-66a1-43fe-a4f7-9de390fb8ec1
+  LambdaPipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties: null
+    RoleArn: >-
+      arn:aws:iam::762867899973:role/service-role/AWSCodePipelineServiceRole-us-east-1-PhotoAlbumFrontEndPipeline
+    Stages:
+      - Name: Source
+        Actions:
+          - InputArtifacts: []
+            Name: Source
+            ActionTypeId:
+              Version: '1'
+              Owner: ThirdParty
+              Category: Source
+              Provider: GitHub
+            OutputArtifacts:
+              - Name: SourceArtifact
+            RunOrder: 1
+            Configuration:
+              Owner: gsavitha
+              Repo: photo-search
+              PollForSourceChanges: 'false'
+              Branch: master
+              OAuthToken: '****'
+            Region: us-east-1
+            Namespace: SourceVariables
+      - Name: Build
+        Actions:
+          - InputArtifacts:
+              - Name: SourceArtifact
+            Name: Build
+            ActionTypeId:
+              Version: '1'
+              Owner: AWS
+              Category: Build
+              Provider: CodeBuild
+            OutputArtifacts:
+              - Name: BuildArtifact
+            RunOrder: 1
+            Configuration:
+              ProjectName: LambdaBuild
+            Region: us-east-1
+            Namespace: BuildVariables
+      - Name: Deploy
+        Actions:
+          - Name: Deploy
+            InputArtifacts:
+              - Name: BuildArtifact
+            OutputArtifacts:
+              - Name: DeployLambda
+            Namespace: DeployVariables
+            ActionTypeId:
+              Category: Deploy
+              Owner: AWS
+              Version: 1
+              Provider: CloudFormation
+            Configuration:
+              ActionMode: CREATE_UPDATE
+              Capabilities: 'CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND'
+              OutputFileName: lambda_function
+              RoleArn: >-
+                arn:aws:iam::762867899973:role/service-role/cwe-role-us-east-1-PhotoAlbumLambdaPipeline
+              StackName: lambda-stack
+              TemplatePath: 'BuildArtifact::outputtemplate.yml'
+            RunOrder: 1
+            Region: us-east-1
+    ArtifactStore:
+      Type: S3
+      Location: codepipeline-us-east-1-215092533109
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 3f85b99c-a568-4ca3-9197-741aca880c82
+  LF1Policy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: LF1Policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'es:ESHttpGet'
+              - 'es:ESHttpPost'
+              - 'es:ESHttpPut'
+              - 'ec2:*'
+            Resource: !Join 
+              - ''
+              - - !GetAtt photos.Arn
+                - /*
+          - Effect: Allow
+            Action: 's3:GetObject*'
+      Roles:
+        - !Ref LF1Role
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 3c05c532-21ac-4b28-8b54-e768d4d56358
+  LF1Role:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 6483f3d3-2cfb-4468-a451-5f1c4ece06d4
+  LF2Policy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: LF2Policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'es:ESHttpGet'
+              - 'es:ESHttpPost'
+              - 'lex:*'
+              - 'ec2:*'
+            Resource: !Join 
+              - ''
+              - - !GetAtt photos.Arn
+                - /*
+      Roles:
+        - !Ref LF2Role
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 38100221-7f78-4d3a-b2db-604d1a0a7b9c
+  LF2Role:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: bbfdbb7e-b176-4af9-a43f-a5464eea7e2a
+  CodePipelineServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: AWS-CodePipeline-Service-3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codecommit:CancelUploadArchive'
+                  - 'codecommit:GetBranch'
+                  - 'codecommit:GetCommit'
+                  - 'codecommit:GetUploadArchiveStatus'
+                  - 'codecommit:UploadArchive'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'codedeploy:CreateDeployment'
+                  - 'codedeploy:GetApplicationRevision'
+                  - 'codedeploy:GetDeployment'
+                  - 'codedeploy:GetDeploymentConfig'
+                  - 'codedeploy:RegisterApplicationRevision'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                  - 'lambda:ListFunctions'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                  - 'iam:GetRole'
+                  - 'iam:CreateRole'
+                  - 'iam:DeleteRole'
+                  - 'iam:AttachRolePolicy'
+                  - 'iam:DetachRolePolicy'
+                  - 'iam:DeleteRolePolicy'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'apigateway:*'
+                  - 'cloudformation:*'
+                  - 's3:*'
+                Resource: '*'
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 1603cea5-aa75-4746-a3be-a6835bff1c64
+Metadata:
+  'AWS::CloudFormation::Designer':
+    3ab689ec-58d8-4620-aa66-c7163fb5db4a:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 270
+        'y': 30
+      z: 1
+      embeds: []
+      dependson:
+        - b141a13c-e68d-4991-b8c8-cb4dee5a5bca
+    04b652e8-345e-42c8-b504-6189db7c518f:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 150
+        'y': 330
+      z: 1
+      embeds: []
+      dependson:
+        - b141a13c-e68d-4991-b8c8-cb4dee5a5bca
+    0a4234df-7464-431e-b5cc-9f5ab36bb537:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 270
+        'y': 330
+      z: 1
+      embeds: []
+    cf37f3e9-b817-4789-b5a3-f80e97f9b3b2:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 270
+        'y': 150
+      z: 1
+      embeds: []
+      dependson:
+        - 0a4234df-7464-431e-b5cc-9f5ab36bb537
+        - 3ab689ec-58d8-4620-aa66-c7163fb5db4a
+    19e24fcc-775f-4576-803b-18b09881c681:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -60
+        'y': 30
+      z: 1
+      embeds: []
+      isassociatedwith:
+        - c3c12b25-a023-445c-8e48-cae1104cd559
+    c3c12b25-a023-445c-8e48-cae1104cd559:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 60
+        'y': 30
+      z: 1
+      embeds: []
+    a97dc06f-66a1-43fe-a4f7-9de390fb8ec1:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 630
+        'y': 250
+      z: 1
+      embeds: []
+    b141a13c-e68d-4991-b8c8-cb4dee5a5bca:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 150
+        'y': 30
+      z: 1
+      embeds: []
+      dependson:
+        - c3c12b25-a023-445c-8e48-cae1104cd559
+    1603cea5-aa75-4746-a3be-a6835bff1c64:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 540
+        'y': 150
+      z: 1
+      embeds: []
+    bbfdbb7e-b176-4af9-a43f-a5464eea7e2a:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 390
+        'y': 30
+      z: 1
+      embeds: []
+    6483f3d3-2cfb-4468-a451-5f1c4ece06d4:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 390
+        'y': 330
+      z: 1
+      embeds: []
+    e0adc66a-d659-4bf3-986d-14bb68e91cb1:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 540
+        'y': 50
+      z: 1
+      embeds: []
+    7d5f8ff7-ad6f-4015-9eec-fc699124329e:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 630
+        'y': 50
+      z: 1
+      embeds: []
+    38100221-7f78-4d3a-b2db-604d1a0a7b9c:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 390
+        'y': 120
+      z: 1
+      embeds: []
+      isassociatedwith:
+        - bbfdbb7e-b176-4af9-a43f-a5464eea7e2a
+    3c05c532-21ac-4b28-8b54-e768d4d56358:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 390
+        'y': 210
+      z: 1
+      embeds: []
+      isassociatedwith:
+        - 6483f3d3-2cfb-4468-a451-5f1c4ece06d4
+    3f85b99c-a568-4ca3-9197-741aca880c82:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: 630
+        'y': 150
+      z: 1
+      embeds: []

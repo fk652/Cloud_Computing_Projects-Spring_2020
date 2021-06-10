@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<style>
+	input:invalid {
+  border: 2px red;
+}
+
+input:valid {
+  border: 2px black;
+}
+input::placeholder{
+	color:red;font:5px;}
+
+
+	</style>
+	  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+	    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+	    <script type="text/javascript">
+			function showalert(message) {
+
+	 $('#alert').html('<div class="alert alert-success alert-dismissible"> <button type="button" class="close" data-dismiss="alert">×</button><strong>Success!</strong>   </div>');
+
+
+	setTimeout(function() { // this will automatically close the alert and remove this if the users doesnt close it in 5 secs
+
+
+		$("#alertdiv").remove();
+
+	}, 5000);
+}
+	        $(document).ready(function() {
+
+						var $myForm = $('#form1');
+
+						// if(! $myForm[0].checkValidity()) {
+						//   // If the form is invalid, submit it. The form won't actually submit;
+						//   // this will just cause the browser to display the native HTML5 error messages.
+						// 	$myForm[0].reportValidity()
+						//   $myForm[0].find(':submit').click();
+						// }
+	            $("#submit").click(function(e) {
+	                e.preventDefault();
+									if(! $myForm[0].checkValidity()) {
+									  // If the form is invalid, submit it. The form won't actually submit;
+									  // this will just cause the browser to display the native HTML5 error messages.
+										console.log("error");
+											$myForm[0].reportValidity();
+									  //$myForm[0].find(':submit').click();
+									}
+									else{
+	                var name = $("#name").val(),
+	                    phone_number = $("#phone_number").val();
+
+	                    const queryString = window.location.search;
+
+	                    const urlParams = new URLSearchParams(queryString);
+
+	                    const face_id = urlParams.get('id');
+											const img_name = urlParams.get('img_name');
+	                    console.log(face_id);
+	                $.ajax({
+	                    type: "POST",
+	                    crossDomain: true,
+	                    url: 'https://gk0gc4xmcc.execute-api.us-east-1.amazonaws.com/stage1/resource1',
+	                    contentType: 'application/json',
+
+	                    data: JSON.stringify({
+	                        'name': name,
+	                        'phone_number': phone_number,
+	                        'id':face_id,
+													'img_name':img_name
+	                    }),
+
+	                    success: function(res){
+	                        $('#form-response').text('Email was sent.');
+													showalert("Sucess!");
+
+													console.log(res);
+	                    },
+	                    error: function(){
+	                        $('#form-response').text();
+	                    }
+	                });
+								}
+});});
+	    </script>
+	  <script src="js/vendor/modernizr.js"></script>
+	<title>Visitor Approval</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--===============================================================================================-->
+	<link rel="icon" type="image/png" href="images/icons/favicon.ico"/>
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/bootstrap/css/bootstrap.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="fonts/font-awesome-4.7.0/css/font-awesome.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="fonts/Linearicons-Free-v1.0.0/icon-font.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/animate/animate.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/css-hamburgers/hamburgers.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/animsition/css/animsition.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/select2/select2.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="vendor/daterangepicker/daterangepicker.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="css/util.css">
+	<link rel="stylesheet" type="text/css" href="css/main.css">
+<!--===============================================================================================-->
+</head>
+<body>
+
+	<div class="limiter">
+		<div class="container-login100" style="background-image: url('images/bg-01.jpg');">
+
+			<div class="wrap-loginPass p-l-50 p-r-50 p-t-33 p-b-33">
+				<div id="alert">
+		</div>
+				<form id="form1"class="login100-form validate-form flex-sb flex-w">
+
+					<span class="login100-form-title p-b-15">
+						Approve Visitor
+					</span>
+					<form >
+						<div class="form-group">
+							<label for="name">Name:</label>
+							<input type="text" class="input100" id="name"  name="name" required>
+						</div>
+						<div class="form-group">
+							<label for="phone_number">Phone Number</label>
+							<input type="tel" class="input100" id="phone_number" pattern="\+[0-9]{11,12}" placeholder="+19876543210 "name="email" required>
+						</div>
+						<button type="submit" id="submit" class="login100-form-btn">Submit</button>
+					</form>
+			</div>
+		</div>
+	</div>
+	<div id="form-response">hb</div>
+
+
+<!--===============================================================================================-->
+	<script src="vendor/jquery/jquery-3.2.1.min.js"></script>
+<!--===============================================================================================-->
+	<script src="vendor/animsition/js/animsition.min.js"></script>
+<!--===============================================================================================-->
+	<script src="vendor/bootstrap/js/popper.js"></script>
+	<script src="vendor/bootstrap/js/bootstrap.min.js"></script>
+<!--===============================================================================================-->
+	<script src="vendor/select2/select2.min.js"></script>
+<!--===============================================================================================-->
+	<script src="vendor/daterangepicker/moment.min.js"></script>
+	<script src="vendor/daterangepicker/daterangepicker.js"></script>
+<!--===============================================================================================-->
+	<script src="vendor/countdowntime/countdowntime.js"></script>
+<!--===============================================================================================-->
+
+</body>
+</html>
